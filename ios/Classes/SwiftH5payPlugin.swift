@@ -38,11 +38,34 @@ public class SwiftH5payPlugin: NSObject, FlutterPlugin {
             self.paymentSchemes = paymentSchemes
         }
         
+        // Try run url directly
+        if (launchApp(url, result: result)) {
+            return
+        }
+        
         initWebView()
         validateWebView()
         
         self.result = result
         webView!.load(URLRequest.init(url: url))
+    }
+    
+    private func launchApp(_ url: URL, result: @escaping FlutterResult) -> Bool {
+        for scheme in paymentSchemes {
+            if url.absoluteString.hasPrefix(scheme + ":") {
+                let app = UIApplication.shared
+                if !app.canOpenURL(url) {
+                    result(ReturnCode.failCantJump)
+                    return false
+                    
+                } else {
+                    let success = app.openURL(url)
+                    result(success ? ReturnCode.success : ReturnCode.fail)
+                    return success
+                }
+            }
+        }
+        return false
     }
     
     private func initWebView() {
@@ -86,18 +109,9 @@ extension SwiftH5payPlugin: WKNavigationDelegate {
     
     private func decidePolicyForRequest(_ request: URLRequest) -> WKNavigationActionPolicy {
         if let url = request.url {
-            for scheme in paymentSchemes {
-                if url.absoluteString.hasPrefix(scheme + ":") {
-                    let app = UIApplication.shared
-                    if !app.canOpenURL(url) {
-                        result?(ReturnCode.failCantJump)
-                    } else {
-                        result?(app.openURL(url) ? ReturnCode.success : ReturnCode.fail)
-                    }
-                    
-                    // Interrupt this request
-                    return .cancel
-                }
+            if (launchApp(url, result: self.result!)) {
+                // Interrupt this request
+                return .cancel
             }
         }
         return .allow
