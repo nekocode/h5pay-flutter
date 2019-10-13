@@ -20,8 +20,13 @@ public class SwiftH5payPlugin: NSObject, FlutterPlugin {
     }
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        if call.method == "launch" {
+        switch call.method {
+        case "launch":
             launch(call, result: result)
+            break
+        default:
+            result(FlutterMethodNotImplemented)
+            break
         }
     }
     
@@ -36,6 +41,8 @@ public class SwiftH5payPlugin: NSObject, FlutterPlugin {
         }
         if let paymentSchemes = arguments["paymentSchemes"] as? [String] {
             self.paymentSchemes = paymentSchemes
+        } else {
+            self.paymentSchemes = [String]()
         }
         
         // Try run url directly
@@ -52,17 +59,19 @@ public class SwiftH5payPlugin: NSObject, FlutterPlugin {
     
     private func launchApp(_ url: URL, result: @escaping FlutterResult) -> Bool {
         for scheme in paymentSchemes {
-            if url.absoluteString.hasPrefix(scheme + ":") {
-                let app = UIApplication.shared
-                if !app.canOpenURL(url) {
-                    result(ReturnCode.failCantJump)
-                    return false
-                    
-                } else {
-                    let success = app.openURL(url)
-                    result(success ? ReturnCode.success : ReturnCode.fail)
-                    return success
-                }
+            if !url.absoluteString.hasPrefix(scheme + ":") {
+                continue
+            }
+            
+            let app = UIApplication.shared
+            if !app.canOpenURL(url) {
+                result(ReturnCode.failCantJump)
+                return false
+                
+            } else {
+                let success = app.openURL(url)
+                result(success ? ReturnCode.success : ReturnCode.failCantJump)
+                return success
             }
         }
         return false
