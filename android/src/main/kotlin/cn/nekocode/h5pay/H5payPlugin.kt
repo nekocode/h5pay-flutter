@@ -11,7 +11,6 @@ import android.view.View
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.FrameLayout
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
@@ -68,7 +67,10 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
         initWebView()
 
         this.result = result
-        webView!!.loadUrl(url)
+        webView!!.run {
+            stopLoading()
+            loadUrl(url)
+        }
     }
 
     private fun launchApp(url: String, result: Result): Boolean {
@@ -114,12 +116,10 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
         webView.settings.domStorageEnabled = true
         webView.settings.allowFileAccessFromFileURLs = true
         webView.settings.allowUniversalAccessFromFileURLs = true
+        webView.settings.loadsImagesAutomatically = false
+        webView.settings.blockNetworkImage = false
         webView.webViewClient = Client()
         this.webView = webView
-
-        val params = FrameLayout.LayoutParams(0, 0)
-        val decorView = activity.window.decorView as FrameLayout
-        decorView.addView(webView, params)
     }
 
     inner class Client : WebViewClient() {
