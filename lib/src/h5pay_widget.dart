@@ -40,16 +40,24 @@ class H5PayController {
 class H5PayWidget extends StatefulWidget {
   H5PayWidget({
     Key key,
-    this.paymentSchemes = const ['alipay', 'alipays', 'weixin', 'wechat'],
-    this.getSchemeUrlTimeout = const Duration(seconds: 5),
-    this.jumpTimeout = const Duration(seconds: 3),
+    List<String> paymentSchemes,
+    Duration getSchemeUrlTimeout,
+    Duration jumpTimeout,
     @required this.getH5Url,
     @required this.verifyResult,
-    this.builder,
-  })  : assert(jumpTimeout != null && !jumpTimeout.isNegative),
+    @required this.builder,
+  })  : this.paymentSchemes =
+            paymentSchemes ?? const ['alipay', 'alipays', 'weixin', 'wechat'],
+        this.getSchemeUrlTimeout =
+            getSchemeUrlTimeout ?? const Duration(seconds: 5),
+        this.jumpTimeout = jumpTimeout ?? const Duration(seconds: 3),
         assert(getH5Url != null),
         assert(verifyResult != null),
-        super(key: key);
+        assert(builder != null),
+        super(key: key) {
+    assert(!this.getSchemeUrlTimeout.isNegative);
+    assert(!this.jumpTimeout.isNegative);
+  }
 
   final List<String> paymentSchemes;
   final Duration getSchemeUrlTimeout;

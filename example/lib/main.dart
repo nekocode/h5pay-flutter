@@ -16,8 +16,20 @@ class _MyAppState extends State<MyApp> {
         appBar: AppBar(
           title: const Text('H5Pay plugin example app'),
         ),
-        body: Center(
-          child: H5PayWidget(
+        body: MainPage(),
+      ),
+    );
+  }
+}
+
+class MainPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          H5PayWidget(
             paymentSchemes: ['sms'],
             getH5Url: () async => 'https://is.gd/4cLE6j',
             verifyResult: () async => true,
@@ -34,7 +46,24 @@ class _MyAppState extends State<MyApp> {
               child: Text(status.toString()),
             ),
           ),
-        ),
+          SizedBox(height: 10),
+          FlatButton(
+            textColor: Colors.white,
+            color: Colors.blue,
+            onPressed: () async {
+              final status = await showH5PayDialog(
+                context: context,
+                paymentSchemes: ['sms'],
+                getH5Url: () async => 'https://is.gd/4cLE6j',
+                verifyResult: () async => false,
+              );
+              Scaffold.of(context).showSnackBar(SnackBar(
+                content: Text(status.toString()),
+              ));
+            },
+            child: Text('showH5PayDialog'),
+          ),
+        ],
       ),
     );
   }
