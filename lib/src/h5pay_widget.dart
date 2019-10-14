@@ -135,6 +135,9 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
       // Resume from payment app
       _listenLifecycle = false;
 
+      setState(() {
+        _status = PaymentStatus.verifying;
+      });
       bool success;
       try {
         success = await widget.verifyResult();
