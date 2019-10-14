@@ -23,17 +23,20 @@ Future<PaymentStatus> showH5PayDialog({
       Animation<double> animation,
       Animation<double> secondaryAnimation,
     ) {
-      return SafeArea(
-        child: Builder(builder: (BuildContext context) {
-          return _H5PayDialog(
-            paymentSchemes: paymentSchemes,
-            getSchemeUrlTimeout: getSchemeUrlTimeout,
-            jumpTimeout: jumpTimeout,
-            getH5Url: getH5Url,
-            verifyResult: verifyResult,
-            builder: builder,
-          );
-        }),
+      return WillPopScope(
+        onWillPop: () async => false,
+        child: SafeArea(
+          child: Builder(builder: (BuildContext context) {
+            return _H5PayDialog(
+              paymentSchemes: paymentSchemes,
+              getSchemeUrlTimeout: getSchemeUrlTimeout,
+              jumpTimeout: jumpTimeout,
+              getH5Url: getH5Url,
+              verifyResult: verifyResult,
+              builder: builder,
+            );
+          }),
+        ),
       );
     },
   );
