@@ -1,5 +1,7 @@
 # h5pay
 
+[![pub package](https://img.shields.io/pub/v/h5pay.svg)](https://pub.dev/packages/h5pay)
+
 An H5 payment (such as Alipay, WeChat Pay) plugin for flutter.
 
 <img border="1" src="image/screenshot.gif"></img>
@@ -9,6 +11,8 @@ An H5 payment (such as Alipay, WeChat Pay) plugin for flutter.
 You can use the `showH5PayDialog` method to show a loading dialog and jump to payment app. When user switches from payment app to your app, the dialog will auto check the payment result.
 
 ```dart
+import 'package:h5pay/h5pay.dart';
+
 final PaymentStatus status = await showH5PayDialog(
   context: context,
   paymentSchemes: const ['alipay', 'alipays', 'weixin', 'wechat'], 
