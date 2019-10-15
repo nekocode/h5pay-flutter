@@ -83,33 +83,25 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _controller._launchNotifier.addListener(() async {
-      setState(() {
-        _status = PaymentStatus.gettingSchemeUrl;
-      });
+      _setPaymentStatus(PaymentStatus.gettingSchemeUrl);
 
       PaymentStatus failStatus = await _launch();
-      if (failStatus != null) {
-        setState(() {
-          _status = failStatus;
-        });
+      if (failStatus != null || !mounted) {
+        _setPaymentStatus(failStatus);
         return;
       }
 
       // Start to listen app lifecycle
       _listenLifecycle = true;
       _jumped = false;
-      setState(() {
-        _status = PaymentStatus.jumping;
-      });
+      _setPaymentStatus(PaymentStatus.jumping);
 
       // Check if jump is successful
       failStatus = await _checkJump();
-      if (failStatus != null) {
+      if (failStatus != null || !mounted) {
         // Jump failed
         _listenLifecycle = false;
-        setState(() {
-          _status = failStatus;
-        });
+        _setPaymentStatus(failStatus);
         return;
       }
     });
@@ -135,24 +127,21 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
       // Resume from payment app
       _listenLifecycle = false;
 
-      setState(() {
-        _status = PaymentStatus.verifying;
-      });
+      _setPaymentStatus(PaymentStatus.verifying);
       bool success;
       try {
         success = await widget.verifyResult();
       } catch (_) {
         success = false;
       }
-      setState(() {
-        _status = success == true ? PaymentStatus.success : PaymentStatus.fail;
-      });
+      _setPaymentStatus(
+          success == true ? PaymentStatus.success : PaymentStatus.fail);
     }
   }
 
   Future<PaymentStatus> _launch() async {
     final url = await widget.getH5Url();
-    if (url == null || url.isEmpty) {
+    if (url == null || url.isEmpty || !mounted) {
       return PaymentStatus.fail;
     }
 
@@ -195,13 +184,20 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
 
     // Cycle check
     for (int i = 0; i < count; i++) {
-      if (_jumped) {
+      if (_jumped || !mounted) {
         return null;
       }
       await Future.delayed(_checkJumpPeriod);
     }
 
     return PaymentStatus.jumpTimeout;
+  }
+
+  void _setPaymentStatus(PaymentStatus status) {
+    _status = status;
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
