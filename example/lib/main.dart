@@ -1,28 +1,45 @@
 import 'package:flutter/material.dart';
 import 'package:h5pay/h5pay.dart';
 
-void main() => runApp(MyApp());
+void main() => runApp(MaterialApp(home: IndexPage()));
 
-class MyApp extends StatefulWidget {
-  @override
-  _MyAppState createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
+class IndexPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(
-          title: const Text('H5Pay plugin example app'),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Example app'),
+      ),
+      body: Center(
+        child: FlatButton(
+          child: Text('Plugin Test'),
+          textColor: Colors.white,
+          color: Colors.blue,
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => MainPage()),
+            );
+          },
         ),
-        body: MainPage(),
       ),
     );
   }
 }
 
 class MainPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Plugin Test'),
+      ),
+      body: MainBody(),
+    );
+  }
+}
+
+class MainBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
