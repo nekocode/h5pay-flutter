@@ -2,7 +2,7 @@
 [![build status](https://api.travis-ci.com/nekocode/h5pay-flutter.svg)](https://travis-ci.com/nekocode/h5pay-flutter)
 [![pub package](https://img.shields.io/pub/v/h5pay.svg)](https://pub.dev/packages/h5pay)
 
-An H5 payment (such as Alipay, WeChat Pay) plugin for flutter.
+A H5 payment (such as Alipay, WeChat Pay) plugin for flutter.
 
 <kbd><img border="1" src="https://github.com/nekocode/h5pay-flutter/blob/master/image/screenshot.gif?raw=true"></img></kbd>
 
