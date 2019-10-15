@@ -1,5 +1,5 @@
 # h5pay
-
+[![build status](https://api.travis-ci.com/nekocode/h5pay-flutter.svg)](https://travis-ci.com/nekocode/h5pay-flutter)
 [![pub package](https://img.shields.io/pub/v/h5pay.svg)](https://pub.dev/packages/h5pay)
 
 An H5 payment (such as Alipay, WeChat Pay) plugin for flutter.
@@ -18,7 +18,7 @@ final PaymentStatus status = await showH5PayDialog(
   paymentSchemes: const ['alipay', 'alipays', 'weixin', 'wechat'], 
   getSchemeUrlTimeout: const Duration(seconds: 5),
   jumpTimeout: const Duration(seconds: 3),
-  getH5Url: () async => 'xxx', // get payment url (http or app scheme url)
+  getH5Url: () async => 'xxx', // get the http or app scheme payment url from your server
   verifyResult: () async => true, // check order result from your server
 );
 if (status == PaymentStatus.success) {
