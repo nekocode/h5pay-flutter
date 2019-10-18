@@ -2,6 +2,7 @@ package cn.nekocode.h5pay
 
 import android.annotation.SuppressLint
 import android.annotation.TargetApi
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
@@ -32,14 +33,20 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
         }
     }
 
-    private var paymentSchemes: List<String> = emptyList()
+    private var paymentSchemes: Iterable<String> = emptyList()
     private var webView: WebView? = null
     private var result: Result? = null
 
     override fun onMethodCall(call: MethodCall, result: Result) {
         when (call.method) {
-            "launch" -> {
-                launch(call, result)
+            "launchPaymentUrl" -> {
+                launchPaymentUrl(call, result)
+            }
+            "launchUrl" -> {
+                launchUrl(call, result)
+            }
+            "canLaunch" -> {
+                canLaunch(call, result)
             }
             else -> {
                 result.notImplemented()
@@ -47,7 +54,7 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
         }
     }
 
-    private fun launch(call: MethodCall, result: Result) {
+    private fun launchPaymentUrl(call: MethodCall, result: Result) {
         val arguments = call.arguments as? HashMap<*, *>
         val url = arguments?.get("url") as? String
         if (url == null) {
@@ -56,11 +63,12 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
         }
         paymentSchemes = (arguments["paymentSchemes"] as? Iterable<*>)
             ?.filterIsInstance<String>()
-            ?.toList()
             ?: emptyList()
 
         // Try run url directly
-        if (launchApp(url, result)) {
+        if (Utils.isPaymentAppUrl(url, paymentSchemes)) {
+            val success = Utils.launchUrl(registrar.activity(), url)
+            result.success(if (success) ReturnCode.success else ReturnCode.failCantJump)
             return
         }
 
@@ -73,28 +81,24 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
         }
     }
 
-    private fun launchApp(url: String, result: Result): Boolean {
-        for (scheme in paymentSchemes) {
-            if (!url.startsWith("$scheme:")) {
-                continue
-            }
-
-            return if (!Utils.canLaunch(registrar.context(), url)) {
-                result.success(ReturnCode.failCantJump)
-                false
-            } else {
-                try {
-                    registrar.activity()
-                        .startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
-                    result.success(ReturnCode.success)
-                    true
-                } catch (_: Exception) {
-                    result.success(ReturnCode.failCantJump)
-                    false
-                }
-            }
+    private fun launchUrl(call: MethodCall, result: Result) {
+        val arguments = call.arguments as? HashMap<*, *>
+        val url = arguments?.get("url") as? String
+        if (url == null) {
+            result.success(false)
+            return
         }
-        return false
+        result.success(Utils.launchUrl(registrar.activity(), url))
+    }
+
+    private fun canLaunch(call: MethodCall, result: Result) {
+        val arguments = call.arguments as? HashMap<*, *>
+        val url = arguments?.get("url") as? String
+        if (url == null) {
+            result.success(false)
+            return
+        }
+        result.success(Utils.canLaunch(registrar.activity(), url))
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -137,7 +141,13 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
         }
 
         private fun shouldOverrideUrlLoading(url: String?): Boolean {
-            return launchApp(url ?: return false, result!!)
+            url ?: return false
+            if (Utils.isPaymentAppUrl(url, paymentSchemes)) {
+                val success = Utils.launchUrl(registrar.activity(), url)
+                result?.success(if (success) ReturnCode.success else ReturnCode.failCantJump)
+                return true
+            }
+            return false
         }
     }
 }
@@ -145,6 +155,19 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
 object Utils {
     private const val FALLBACK_COMPONENT_NAME =
         "{com.android.fallback/com.android.fallback.Fallback}"
+
+    fun launchUrl(activity: Activity, url: String): Boolean {
+        return if (!canLaunch(activity, url)) {
+            false
+        } else {
+            try {
+                activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                true
+            } catch (_: Exception) {
+                false
+            }
+        }
+    }
 
     fun canLaunch(context: Context, url: String): Boolean {
         val launchIntent = Intent(Intent.ACTION_VIEW).apply {
@@ -154,5 +177,15 @@ object Utils {
 
         return componentName != null &&
                 FALLBACK_COMPONENT_NAME != componentName.toShortString()
+    }
+
+    fun isPaymentAppUrl(url: String, paymentSchemes: Iterable<String>): Boolean {
+        for (scheme in paymentSchemes) {
+            if (!url.startsWith("$scheme:")) {
+                continue
+            }
+            return true
+        }
+        return false
     }
 }

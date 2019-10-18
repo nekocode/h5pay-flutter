@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
-import 'channel.dart';
+import 'h5pay_channel.dart';
 import 'utils.dart';
 
 enum PaymentStatus {
@@ -152,13 +152,13 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
       }
     }
 
-    Channel.launch(url, widget.paymentSchemes).then((code) {
+    H5PayChannel.launchPaymentUrl(url, widget.paymentSchemes).then((code) {
       PaymentStatus failStatus;
       switch (code) {
-        case Channel.codeFailCantJump:
+        case H5PayChannel.codeFailCantJump:
           failStatus = PaymentStatus.cantJump;
           break;
-        case Channel.codeFail:
+        case H5PayChannel.codeFail:
           failStatus = PaymentStatus.fail;
           break;
       }

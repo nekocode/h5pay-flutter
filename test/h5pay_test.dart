@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:h5pay/h5pay.dart';
-import 'package:h5pay/src/channel.dart';
+import 'package:h5pay/src/h5pay_channel.dart';
 
 void main() {
   const MethodChannel channel = MethodChannel('h5pay');
@@ -11,9 +11,9 @@ void main() {
 
   setUp(() {
     channel.setMockMethodCallHandler((MethodCall methodCall) async {
-      expect(methodCall.method, 'launch');
+      expect(methodCall.method, 'launchPaymentUrl');
       await Future.delayed(Duration(seconds: 1));
-      return Channel.codeSuccess;
+      return H5PayChannel.codeSuccess;
     });
   });
 

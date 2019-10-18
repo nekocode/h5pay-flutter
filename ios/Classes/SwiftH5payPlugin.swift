@@ -21,8 +21,14 @@ public class SwiftH5payPlugin: NSObject, FlutterPlugin {
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
-        case "launch":
-            launch(call, result: result)
+        case "launchPaymentUrl":
+            launchPaymentUrl(call, result: result)
+            break
+        case "launchUrl":
+            launchUrl(call, result: result)
+            break
+        case "canLaunch":
+            canLaunch(call, result: result)
             break
         default:
             result(FlutterMethodNotImplemented)
@@ -30,7 +36,7 @@ public class SwiftH5payPlugin: NSObject, FlutterPlugin {
         }
     }
     
-    private func launch(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    private func launchPaymentUrl(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard
             let arguments = call.arguments as? [String: Any],
             let urlString = arguments["url"] as? String,
@@ -46,7 +52,9 @@ public class SwiftH5payPlugin: NSObject, FlutterPlugin {
         }
         
         // Try run url directly
-        if (launchApp(url, result: result)) {
+        if (Utils.isPaymentAppUrl(url, paymentSchemes)) {
+            let success = Utils.launchUrl(url)
+            result(success ? ReturnCode.success : ReturnCode.failCantJump)
             return
         }
         
@@ -57,24 +65,28 @@ public class SwiftH5payPlugin: NSObject, FlutterPlugin {
         webView!.load(URLRequest.init(url: url))
     }
     
-    private func launchApp(_ url: URL, result: @escaping FlutterResult) -> Bool {
-        for scheme in paymentSchemes {
-            if !url.absoluteString.hasPrefix(scheme + ":") {
-                continue
-            }
-            
-            let app = UIApplication.shared
-            if !app.canOpenURL(url) {
-                result(ReturnCode.failCantJump)
-                return false
-                
-            } else {
-                let success = app.openURL(url)
-                result(success ? ReturnCode.success : ReturnCode.failCantJump)
-                return success
-            }
+    private func launchUrl(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard
+            let arguments = call.arguments as? [String: Any],
+            let urlString = arguments["url"] as? String,
+            let url = URL(string: urlString)
+            else {
+                result(false)
+                return
         }
-        return false
+        result(Utils.launchUrl(url))
+    }
+    
+    private func canLaunch(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard
+            let arguments = call.arguments as? [String: Any],
+            let urlString = arguments["url"] as? String,
+            let url = URL(string: urlString)
+            else {
+                result(false)
+                return
+        }
+        result(Utils.canLaunch(url))
     }
     
     private func initWebView() {
@@ -118,11 +130,38 @@ extension SwiftH5payPlugin: WKNavigationDelegate {
     
     private func decidePolicyForRequest(_ request: URLRequest) -> WKNavigationActionPolicy {
         if let url = request.url {
-            if (launchApp(url, result: self.result!)) {
-                // Interrupt this request
+            if (Utils.isPaymentAppUrl(url, paymentSchemes)) {
+                let success = Utils.launchUrl(url)
+                result?(success ? ReturnCode.success : ReturnCode.failCantJump)
                 return .cancel
             }
         }
         return .allow
+    }
+}
+
+class Utils {
+    public static func launchUrl(_ url: URL) -> Bool {
+        if !canLaunch(url) {
+            return false
+        } else {
+            let success = UIApplication.shared.openURL(url)
+            return success
+        }
+    }
+    
+    public static func canLaunch(_ url: URL) -> Bool {
+        return UIApplication.shared.canOpenURL(url)
+    }
+    
+    public static func isPaymentAppUrl(_ url: URL, _ paymentSchemes: [String]) -> Bool {
+        let urlString = url.absoluteString
+        for scheme in paymentSchemes {
+            if !urlString.hasPrefix(scheme + ":") {
+                continue
+            }
+            return true
+        }
+        return false
     }
 }
