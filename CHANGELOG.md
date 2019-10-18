@@ -1,3 +1,7 @@
+## 0.4.2
+
+* Just update the README
+
 ## 0.4.1
 
 * Revert: use future to get payment url

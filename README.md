@@ -16,7 +16,7 @@ import 'package:h5pay/h5pay.dart';
 final PaymentStatus status = await showH5PayDialog(
   context: context,
   paymentSchemes: const ['alipay', 'alipays', 'weixin', 'wechat'], 
-  getSchemeUrlTimeout: const Duration(seconds: 5),
+  getPaymentUrlTimeout: const Duration(seconds: 5),
   jumpTimeout: const Duration(seconds: 3),
   getPaymentUrl: () async => 'xxx', // get the app scheme (or http) payment url from your server
   verifyResult: () async => true, // check order result from your server
@@ -31,8 +31,8 @@ Values of `PaymentStatus`:
 ```dart
 enum PaymentStatus {
   idle,
-  gettingSchemeUrl,
-  getSchemeUrlTimeout,
+  gettingPaymentUrl,
+  getPaymentUrlTimeout,
   jumping,
   cantJump, // Maybe target payment app is not installed
   jumpTimeout,
