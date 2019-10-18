@@ -7,8 +7,8 @@ import 'utils.dart';
 
 enum PaymentStatus {
   idle,
-  gettingSchemeUrl,
-  getSchemeUrlTimeout,
+  gettingPaymentUrl,
+  getPaymentUrlTimeout,
   jumping,
   cantJump, // Maybe target payment app is not installed
   jumpTimeout,
@@ -41,28 +41,28 @@ class H5PayWidget extends StatefulWidget {
   H5PayWidget({
     Key key,
     List<String> paymentSchemes,
-    Duration getSchemeUrlTimeout,
+    Duration getPaymentUrlTimeout,
     Duration jumpTimeout,
-    @required this.paymentUrl,
+    @required this.getPaymentUrl,
     @required this.verifyResult,
     @required this.builder,
   })  : this.paymentSchemes =
             paymentSchemes ?? const ['alipay', 'alipays', 'weixin', 'wechat'],
-        this.getSchemeUrlTimeout =
-            getSchemeUrlTimeout ?? const Duration(seconds: 5),
-        this.jumpTimeout = jumpTimeout ?? const Duration(seconds: 4),
-        assert(paymentUrl != null),
+        this.getPaymentUrlTimeout =
+            getPaymentUrlTimeout ?? const Duration(seconds: 5),
+        this.jumpTimeout = jumpTimeout ?? const Duration(seconds: 3),
+        assert(getPaymentUrl != null),
         assert(verifyResult != null),
         assert(builder != null),
         super(key: key) {
-    assert(!this.getSchemeUrlTimeout.isNegative);
+    assert(!this.getPaymentUrlTimeout.isNegative);
     assert(!this.jumpTimeout.isNegative);
   }
 
   final List<String> paymentSchemes;
-  final Duration getSchemeUrlTimeout;
+  final Duration getPaymentUrlTimeout;
   final Duration jumpTimeout;
-  final String paymentUrl;
+  final GetUrlCallback getPaymentUrl;
   final VerifyResultCallback verifyResult;
   final H5PayWidgetBuilder builder;
 
@@ -83,7 +83,7 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _controller._launchNotifier.addListener(() async {
-      _setPaymentStatus(PaymentStatus.gettingSchemeUrl);
+      _setPaymentStatus(PaymentStatus.gettingPaymentUrl);
 
       PaymentStatus failStatus = await _launch();
       if (failStatus != null || !mounted) {
@@ -140,7 +140,10 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
   }
 
   Future<PaymentStatus> _launch() async {
-    final url = widget.paymentUrl;
+    String url;
+    try {
+      url = await widget.getPaymentUrl();
+    } catch (_) {}
     if (url == null || url.isEmpty || !mounted) {
       return PaymentStatus.fail;
     }
@@ -170,8 +173,8 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
       completeOnce(PaymentStatus.fail);
     });
 
-    Future.delayed(widget.getSchemeUrlTimeout, () {
-      completeOnce(PaymentStatus.getSchemeUrlTimeout);
+    Future.delayed(widget.getPaymentUrlTimeout, () {
+      completeOnce(PaymentStatus.getPaymentUrlTimeout);
     });
 
     return completer.future;

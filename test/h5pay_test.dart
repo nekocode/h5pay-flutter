@@ -26,7 +26,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: H5PayWidget(
-            paymentUrl: 'https://baidu.com',
+            getPaymentUrl: () async => 'https://baidu.com',
             verifyResult: () async =>
                 Future.delayed(Duration(milliseconds: 500), () => true),
             builder: (context, status, controller) {
@@ -58,7 +58,7 @@ void main() {
     verifyStatus(PaymentStatus.idle);
     await tester.tap(findText(PaymentStatus.idle));
     await tester.pump();
-    verifyStatus(PaymentStatus.gettingSchemeUrl);
+    verifyStatus(PaymentStatus.gettingPaymentUrl);
     await tester.pump(new Duration(seconds: 1));
     verifyStatus(PaymentStatus.jumping);
 

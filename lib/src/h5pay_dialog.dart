@@ -6,11 +6,11 @@ import 'h5pay_widget.dart';
 
 Future<PaymentStatus> showH5PayDialog({
   @required BuildContext context,
-  @required String paymentUrl,
-  @required VerifyResultCallback verifyResult,
   List<String> paymentSchemes,
-  Duration getSchemeUrlTimeout,
+  Duration getPaymentUrlTimeout,
   Duration jumpTimeout,
+  @required GetUrlCallback getPaymentUrl,
+  @required VerifyResultCallback verifyResult,
   WidgetBuilder builder,
 }) {
   return showGeneralDialog(
@@ -29,9 +29,9 @@ Future<PaymentStatus> showH5PayDialog({
           child: Builder(builder: (BuildContext context) {
             return _H5PayDialog(
               paymentSchemes: paymentSchemes,
-              getSchemeUrlTimeout: getSchemeUrlTimeout,
+              getPaymentUrlTimeout: getPaymentUrlTimeout,
               jumpTimeout: jumpTimeout,
-              paymentUrl: paymentUrl,
+              getPaymentUrl: getPaymentUrl,
               verifyResult: verifyResult,
               builder: builder,
             );
@@ -46,20 +46,20 @@ class _H5PayDialog extends StatelessWidget {
   _H5PayDialog({
     Key key,
     this.paymentSchemes,
-    this.getSchemeUrlTimeout,
+    this.getPaymentUrlTimeout,
     this.jumpTimeout,
-    @required this.paymentUrl,
+    @required this.getPaymentUrl,
     @required this.verifyResult,
     WidgetBuilder builder,
   })  : this.builder = _buildSimpleDialog,
-        assert(paymentUrl != null),
+        assert(getPaymentUrl != null),
         assert(verifyResult != null),
         super(key: key);
 
   final List<String> paymentSchemes;
-  final Duration getSchemeUrlTimeout;
+  final Duration getPaymentUrlTimeout;
   final Duration jumpTimeout;
-  final String paymentUrl;
+  final GetUrlCallback getPaymentUrl;
   final VerifyResultCallback verifyResult;
   final WidgetBuilder builder;
 
@@ -67,20 +67,20 @@ class _H5PayDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return H5PayWidget(
       paymentSchemes: paymentSchemes,
-      getSchemeUrlTimeout: getSchemeUrlTimeout,
+      getPaymentUrlTimeout: getPaymentUrlTimeout,
       jumpTimeout: jumpTimeout,
-      paymentUrl: paymentUrl,
+      getPaymentUrl: getPaymentUrl,
       verifyResult: verifyResult,
       builder: (context, status, controller) {
         switch (status) {
           case PaymentStatus.idle:
             controller.launch();
             break;
-          case PaymentStatus.gettingSchemeUrl:
+          case PaymentStatus.gettingPaymentUrl:
           case PaymentStatus.jumping:
           case PaymentStatus.verifying:
             break;
-          case PaymentStatus.getSchemeUrlTimeout:
+          case PaymentStatus.getPaymentUrlTimeout:
           case PaymentStatus.cantJump:
           case PaymentStatus.jumpTimeout:
           case PaymentStatus.success:
