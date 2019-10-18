@@ -1,6 +1,10 @@
+## 0.4.1
+
+* Revert: use future to get payment url
+
 ## 0.4.0
 
-* Repalce the 'getH5Url' argument with 'paymentUrl'
+* Replace the 'getH5Url' argument with 'paymentUrl'
 * Expose some util methods from platform plugins
 
 ## 0.2.0
