@@ -43,15 +43,15 @@ class H5PayWidget extends StatefulWidget {
     List<String> paymentSchemes,
     Duration getSchemeUrlTimeout,
     Duration jumpTimeout,
-    @required this.getH5Url,
+    @required this.paymentUrl,
     @required this.verifyResult,
     @required this.builder,
   })  : this.paymentSchemes =
             paymentSchemes ?? const ['alipay', 'alipays', 'weixin', 'wechat'],
         this.getSchemeUrlTimeout =
             getSchemeUrlTimeout ?? const Duration(seconds: 5),
-        this.jumpTimeout = jumpTimeout ?? const Duration(seconds: 3),
-        assert(getH5Url != null),
+        this.jumpTimeout = jumpTimeout ?? const Duration(seconds: 4),
+        assert(paymentUrl != null),
         assert(verifyResult != null),
         assert(builder != null),
         super(key: key) {
@@ -62,7 +62,7 @@ class H5PayWidget extends StatefulWidget {
   final List<String> paymentSchemes;
   final Duration getSchemeUrlTimeout;
   final Duration jumpTimeout;
-  final GetUrlCallback getH5Url;
+  final String paymentUrl;
   final VerifyResultCallback verifyResult;
   final H5PayWidgetBuilder builder;
 
@@ -140,7 +140,7 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
   }
 
   Future<PaymentStatus> _launch() async {
-    final url = await widget.getH5Url();
+    final url = widget.paymentUrl;
     if (url == null || url.isEmpty || !mounted) {
       return PaymentStatus.fail;
     }

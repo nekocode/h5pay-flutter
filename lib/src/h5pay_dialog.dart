@@ -6,7 +6,7 @@ import 'h5pay_widget.dart';
 
 Future<PaymentStatus> showH5PayDialog({
   @required BuildContext context,
-  @required GetUrlCallback getH5Url,
+  @required String paymentUrl,
   @required VerifyResultCallback verifyResult,
   List<String> paymentSchemes,
   Duration getSchemeUrlTimeout,
@@ -31,7 +31,7 @@ Future<PaymentStatus> showH5PayDialog({
               paymentSchemes: paymentSchemes,
               getSchemeUrlTimeout: getSchemeUrlTimeout,
               jumpTimeout: jumpTimeout,
-              getH5Url: getH5Url,
+              paymentUrl: paymentUrl,
               verifyResult: verifyResult,
               builder: builder,
             );
@@ -48,18 +48,18 @@ class _H5PayDialog extends StatelessWidget {
     this.paymentSchemes,
     this.getSchemeUrlTimeout,
     this.jumpTimeout,
-    @required this.getH5Url,
+    @required this.paymentUrl,
     @required this.verifyResult,
     WidgetBuilder builder,
   })  : this.builder = _buildSimpleDialog,
-        assert(getH5Url != null),
+        assert(paymentUrl != null),
         assert(verifyResult != null),
         super(key: key);
 
   final List<String> paymentSchemes;
   final Duration getSchemeUrlTimeout;
   final Duration jumpTimeout;
-  final GetUrlCallback getH5Url;
+  final String paymentUrl;
   final VerifyResultCallback verifyResult;
   final WidgetBuilder builder;
 
@@ -69,7 +69,7 @@ class _H5PayDialog extends StatelessWidget {
       paymentSchemes: paymentSchemes,
       getSchemeUrlTimeout: getSchemeUrlTimeout,
       jumpTimeout: jumpTimeout,
-      getH5Url: getH5Url,
+      paymentUrl: paymentUrl,
       verifyResult: verifyResult,
       builder: (context, status, controller) {
         switch (status) {

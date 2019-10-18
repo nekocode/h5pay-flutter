@@ -26,7 +26,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: H5PayWidget(
-            getH5Url: () async => 'https://baidu.com',
+            paymentUrl: 'https://baidu.com',
             verifyResult: () async =>
                 Future.delayed(Duration(milliseconds: 500), () => true),
             builder: (context, status, controller) {
