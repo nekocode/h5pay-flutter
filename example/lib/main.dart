@@ -47,13 +47,16 @@ class MainBody extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           H5PayWidget(
-            paymentSchemes: ['sms'],
-            getPaymentUrl: () async => 'https://is.gd/4cLE6j',
+            getPaymentArguments: () async => PaymentArguments(
+              url: 'https://is.gd/4cLE6j',
+              redirectSchemes: ['sms'],
+            ),
             verifyResult: () async => true,
             builder: (context, status, controller) => FlatButton(
               textColor: Colors.white,
               color: Colors.blue,
-              onPressed: status != PaymentStatus.gettingPaymentUrl &&
+              onPressed: status != PaymentStatus.gettingArguments &&
+                      status != PaymentStatus.launchingUrl &&
                       status != PaymentStatus.jumping &&
                       status != PaymentStatus.verifying
                   ? () async {
@@ -70,8 +73,10 @@ class MainBody extends StatelessWidget {
             onPressed: () async {
               final status = await showH5PayDialog(
                 context: context,
-                paymentSchemes: ['sms'],
-                getPaymentUrl: () async => 'https://is.gd/4cLE6j',
+                getPaymentArguments: () async => PaymentArguments(
+                  url: 'https://is.gd/4cLE6j',
+                  redirectSchemes: ['sms'],
+                ),
                 verifyResult: () async => true,
               );
               Scaffold.of(context).showSnackBar(SnackBar(

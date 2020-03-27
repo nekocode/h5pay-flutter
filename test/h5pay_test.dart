@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:h5pay/h5pay.dart';
-import 'package:h5pay/src/h5pay_channel.dart';
 
 void main() {
   const MethodChannel channel = MethodChannel('h5pay');
@@ -11,9 +10,9 @@ void main() {
 
   setUp(() {
     channel.setMockMethodCallHandler((MethodCall methodCall) async {
-      expect(methodCall.method, 'launchPaymentUrl');
-      await Future.delayed(Duration(seconds: 1));
-      return H5PayChannel.codeSuccess;
+      expect(methodCall.method, 'launchRedirectUrl');
+      await Future.delayed(Duration(milliseconds: 500));
+      return true;
     });
   });
 
@@ -26,7 +25,13 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: H5PayWidget(
-            getPaymentUrl: () async => 'https://baidu.com',
+            getPaymentArguments: () async => Future.delayed(
+              Duration(milliseconds: 500),
+              () => PaymentArguments(
+                url: 'https://baidu.com',
+                redirectSchemes: ['sms'],
+              ),
+            ),
             verifyResult: () async =>
                 Future.delayed(Duration(milliseconds: 500), () => true),
             builder: (context, status, controller) {
@@ -58,8 +63,10 @@ void main() {
     verifyStatus(PaymentStatus.idle);
     await tester.tap(findText(PaymentStatus.idle));
     await tester.pump();
-    verifyStatus(PaymentStatus.gettingPaymentUrl);
-    await tester.pump(new Duration(seconds: 1));
+    verifyStatus(PaymentStatus.gettingArguments);
+    await tester.pump(new Duration(milliseconds: 600));
+    verifyStatus(PaymentStatus.launchingUrl);
+    await tester.pump(new Duration(milliseconds: 600));
     verifyStatus(PaymentStatus.jumping);
 
     await changeAppLifecycleState(AppLifecycleState.inactive);
@@ -68,8 +75,8 @@ void main() {
     await tester.pump();
 
     verifyStatus(PaymentStatus.verifying);
-    await tester.pump(new Duration(milliseconds: 500));
+    await tester.pump(new Duration(milliseconds: 600));
     verifyStatus(PaymentStatus.success);
-    await tester.pump(new Duration(seconds: 5));
+    await tester.pump(new Duration(milliseconds: 5000));
   });
 }

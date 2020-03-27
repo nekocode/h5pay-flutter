@@ -18,12 +18,6 @@ import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry.Registrar
 
-object ReturnCode {
-    const val success = 1
-    const val fail = 0
-    const val failCantJump = -1
-}
-
 class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
     companion object {
         @JvmStatic
@@ -33,14 +27,14 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
         }
     }
 
-    private var paymentSchemes: Iterable<String> = emptyList()
+    private var targetSchemes: Iterable<String> = emptyList()
     private var webView: WebView? = null
     private var result: Result? = null
 
     override fun onMethodCall(call: MethodCall, result: Result) {
         when (call.method) {
-            "launchPaymentUrl" -> {
-                launchPaymentUrl(call, result)
+            "launchRedirectUrl" -> {
+                launchRedirectUrl(call, result)
             }
             "launchUrl" -> {
                 launchUrl(call, result)
@@ -54,21 +48,16 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
         }
     }
 
-    private fun launchPaymentUrl(call: MethodCall, result: Result) {
+    private fun launchRedirectUrl(call: MethodCall, result: Result) {
         val arguments = call.arguments as? HashMap<*, *>
-        val url = arguments?.get("url") as? String
-        if (url == null) {
-            result.success(ReturnCode.fail)
-            return
-        }
-        paymentSchemes = (arguments["paymentSchemes"] as? Iterable<*>)
+        targetSchemes = (arguments?.get("targetSchemes") as? Iterable<*>)
             ?.filterIsInstance<String>()
             ?: emptyList()
 
-        // Try run url directly
-        if (Utils.isPaymentAppUrl(url, paymentSchemes)) {
-            val success = Utils.launchUrl(registrar.activity(), url)
-            result.success(if (success) ReturnCode.success else ReturnCode.failCantJump)
+        // Try to launch url directly
+        val url = arguments?.get("url") as? String
+        if (Utils.hasScheme(url, targetSchemes)) {
+            result.success(Utils.launchUrl(registrar.activity(), url))
             return
         }
 
@@ -84,10 +73,6 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
     private fun launchUrl(call: MethodCall, result: Result) {
         val arguments = call.arguments as? HashMap<*, *>
         val url = arguments?.get("url") as? String
-        if (url == null) {
-            result.success(false)
-            return
-        }
         result.success(Utils.launchUrl(registrar.activity(), url))
     }
 
@@ -141,10 +126,8 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
         }
 
         private fun shouldOverrideUrlLoading(url: String?): Boolean {
-            url ?: return false
-            if (Utils.isPaymentAppUrl(url, paymentSchemes)) {
-                val success = Utils.launchUrl(registrar.activity(), url)
-                result?.success(if (success) ReturnCode.success else ReturnCode.failCantJump)
+            if (Utils.hasScheme(url, targetSchemes)) {
+                result?.success(Utils.launchUrl(registrar.activity(), url))
                 return true
             }
             return false
@@ -156,7 +139,7 @@ object Utils {
     private const val FALLBACK_COMPONENT_NAME =
         "{com.android.fallback/com.android.fallback.Fallback}"
 
-    fun launchUrl(activity: Activity, url: String): Boolean {
+    fun launchUrl(activity: Activity, url: String?): Boolean {
         return if (!canLaunch(activity, url)) {
             false
         } else {
@@ -169,7 +152,8 @@ object Utils {
         }
     }
 
-    fun canLaunch(context: Context, url: String): Boolean {
+    fun canLaunch(context: Context, url: String?): Boolean {
+        url ?: return false
         val launchIntent = Intent(Intent.ACTION_VIEW).apply {
             data = Uri.parse(url)
         }
@@ -179,8 +163,9 @@ object Utils {
                 FALLBACK_COMPONENT_NAME != componentName.toShortString()
     }
 
-    fun isPaymentAppUrl(url: String, paymentSchemes: Iterable<String>): Boolean {
-        for (scheme in paymentSchemes) {
+    fun hasScheme(url: String?, targetSchemes: Iterable<String>): Boolean {
+        url ?: return false
+        for (scheme in targetSchemes) {
             if (!url.startsWith("$scheme:")) {
                 continue
             }

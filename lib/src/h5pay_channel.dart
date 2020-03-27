@@ -2,15 +2,12 @@ import 'package:flutter/services.dart';
 
 class H5PayChannel {
   static const _channel = const MethodChannel('h5pay');
-  static const codeSuccess = 1;
-  static const codeFail = 0;
-  static const codeFailCantJump = -1;
 
-  static Future<int> launchPaymentUrl(String url, List<String> paymentSchemes) {
+  static Future<bool> launchRedirectUrl(String url, List<String> targetSchemes) {
     return _channel.invokeMethod(
-      'launchPaymentUrl',
+      'launchRedirectUrl',
       <String, Object>{
-        'paymentSchemes': paymentSchemes,
+        'targetSchemes': targetSchemes,
         'url': url,
       },
     );

@@ -2,14 +2,8 @@ import Flutter
 import UIKit
 import WebKit
 
-private class ReturnCode {
-    public static let success = 1
-    public static let fail = 0
-    public static let failCantJump = -1
-}
-
 public class SwiftH5payPlugin: NSObject, FlutterPlugin {
-    private var paymentSchemes = [String]()
+    private var targetSchemes = [String]()
     private var webView: WKWebView? = nil
     private var result: FlutterResult? = nil
     
@@ -21,8 +15,8 @@ public class SwiftH5payPlugin: NSObject, FlutterPlugin {
     
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
-        case "launchPaymentUrl":
-            launchPaymentUrl(call, result: result)
+        case "launchRedirectUrl":
+            launchRedirectUrl(call, result: result)
             break
         case "launchUrl":
             launchUrl(call, result: result)
@@ -36,25 +30,24 @@ public class SwiftH5payPlugin: NSObject, FlutterPlugin {
         }
     }
     
-    private func launchPaymentUrl(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+    private func launchRedirectUrl(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         guard
             let arguments = call.arguments as? [String: Any],
             let urlString = arguments["url"] as? String,
             let url = URL(string: urlString)
             else {
-                result(ReturnCode.fail)
+                result(false)
                 return
         }
-        if let paymentSchemes = arguments["paymentSchemes"] as? [String] {
-            self.paymentSchemes = paymentSchemes
+        if let targetSchemes = arguments["targetSchemes"] as? [String] {
+            self.targetSchemes = targetSchemes
         } else {
-            self.paymentSchemes = [String]()
+            self.targetSchemes = [String]()
         }
         
-        // Try run url directly
-        if (Utils.isPaymentAppUrl(url, paymentSchemes)) {
-            let success = Utils.launchUrl(url)
-            result(success ? ReturnCode.success : ReturnCode.failCantJump)
+        // Try to launch url directly
+        if (Utils.hasScheme(url, targetSchemes)) {
+            result(Utils.launchUrl(url))
             return
         }
         
@@ -130,9 +123,8 @@ extension SwiftH5payPlugin: WKNavigationDelegate {
     
     private func decidePolicyForRequest(_ request: URLRequest) -> WKNavigationActionPolicy {
         if let url = request.url {
-            if (Utils.isPaymentAppUrl(url, paymentSchemes)) {
-                let success = Utils.launchUrl(url)
-                result?(success ? ReturnCode.success : ReturnCode.failCantJump)
+            if (Utils.hasScheme(url, targetSchemes)) {
+                result?(Utils.launchUrl(url))
                 return .cancel
             }
         }
@@ -154,9 +146,9 @@ class Utils {
         return UIApplication.shared.canOpenURL(url)
     }
     
-    public static func isPaymentAppUrl(_ url: URL, _ paymentSchemes: [String]) -> Bool {
+    public static func hasScheme(_ url: URL, _ targetSchemes: [String]) -> Bool {
         let urlString = url.absoluteString
-        for scheme in paymentSchemes {
+        for scheme in targetSchemes {
             if !urlString.hasPrefix(scheme + ":") {
                 continue
             }

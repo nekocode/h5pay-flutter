@@ -7,17 +7,50 @@ import 'utils.dart';
 
 enum PaymentStatus {
   idle,
-  gettingPaymentUrl,
-  getPaymentUrlTimeout,
+  gettingArguments,
+  getArgumentsFail,
+  launchingUrl,
+  cantLaunchUrl, // Maybe target payment app is not installed
+  launchUrlTimeout, // Maybe redirecting url is fail
   jumping,
-  cantJump, // Maybe target payment app is not installed
   jumpTimeout,
   verifying,
   success,
   fail,
 }
 
-typedef Future<String> GetUrlCallback();
+class PaymentArguments {
+  // Payment url (can be http or any other protocol)
+  final String url;
+
+  // If scheme of the 'url' argument is 'http' and this argument is not null,
+  // then this library will launch the url in a hidden webview, catch the
+  // redirect url which has the scheme you specified, and finally launch
+  // the new url by using the system api.
+  //
+  // You can leave this argument to null to launch the url by using
+  // the system api directly.
+  final List<String> redirectSchemes;
+
+  // Timeout duration of jumping to payment app (or system browser)
+  final Duration jumpTimeout;
+
+  // Timeout duration of launching url
+  final Duration launchUrlTimeout;
+
+  PaymentArguments({
+    @required this.url,
+    this.redirectSchemes,
+    jumpTimeout,
+    launchUrlTimeout,
+  })  : assert(url != null && url.isNotEmpty),
+        assert(jumpTimeout == null || !jumpTimeout.isNegative),
+        assert(launchUrlTimeout == null || !launchUrlTimeout.isNegative),
+        this.jumpTimeout = jumpTimeout ?? const Duration(seconds: 3),
+        this.launchUrlTimeout = launchUrlTimeout ?? const Duration(seconds: 5);
+}
+
+typedef Future<PaymentArguments> GetArgumentsCallback();
 typedef Future<bool> VerifyResultCallback();
 typedef Widget H5PayWidgetBuilder(
   BuildContext context,
@@ -38,31 +71,16 @@ class H5PayController {
 }
 
 class H5PayWidget extends StatefulWidget {
-  H5PayWidget({
+  const H5PayWidget({
     Key key,
-    List<String> paymentSchemes,
-    Duration getPaymentUrlTimeout,
-    Duration jumpTimeout,
-    @required this.getPaymentUrl,
-    @required this.verifyResult,
+    @required this.getPaymentArguments,
     @required this.builder,
-  })  : this.paymentSchemes =
-            paymentSchemes ?? const ['alipay', 'alipays', 'weixin', 'wechat'],
-        this.getPaymentUrlTimeout =
-            getPaymentUrlTimeout ?? const Duration(seconds: 5),
-        this.jumpTimeout = jumpTimeout ?? const Duration(seconds: 3),
-        assert(getPaymentUrl != null),
-        assert(verifyResult != null),
+    this.verifyResult,
+  })  : assert(getPaymentArguments != null),
         assert(builder != null),
-        super(key: key) {
-    assert(!this.getPaymentUrlTimeout.isNegative);
-    assert(!this.jumpTimeout.isNegative);
-  }
+        super(key: key);
 
-  final List<String> paymentSchemes;
-  final Duration getPaymentUrlTimeout;
-  final Duration jumpTimeout;
-  final GetUrlCallback getPaymentUrl;
+  final GetArgumentsCallback getPaymentArguments;
   final VerifyResultCallback verifyResult;
   final H5PayWidgetBuilder builder;
 
@@ -83,9 +101,22 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _controller._launchNotifier.addListener(() async {
-      _setPaymentStatus(PaymentStatus.gettingPaymentUrl);
+      // Start to get payment arguments
+      _setPaymentStatus(PaymentStatus.gettingArguments);
+      PaymentArguments args;
+      try {
+        args = await widget.getPaymentArguments();
+      } catch (_) {
+        _setPaymentStatus(PaymentStatus.getArgumentsFail);
+        return;
+      }
+      if (!mounted) {
+        return;
+      }
 
-      PaymentStatus failStatus = await _launch();
+      // Start to launch url
+      _setPaymentStatus(PaymentStatus.launchingUrl);
+      PaymentStatus failStatus = await _launch(args);
       if (failStatus != null || !mounted) {
         _setPaymentStatus(failStatus);
         return;
@@ -97,7 +128,7 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
       _setPaymentStatus(PaymentStatus.jumping);
 
       // Check if jump is successful
-      failStatus = await _checkJump();
+      failStatus = await _checkJump(args);
       if (failStatus != null || !mounted) {
         // Jump failed
         _listenLifecycle = false;
@@ -127,27 +158,23 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
       // Resume from payment app
       _listenLifecycle = false;
 
-      _setPaymentStatus(PaymentStatus.verifying);
-      bool success;
-      try {
-        success = await widget.verifyResult();
-      } catch (_) {
-        success = false;
+      bool success = true;
+      // Try to verify the payment result
+      if (widget.verifyResult != null) {
+        _setPaymentStatus(PaymentStatus.verifying);
+        try {
+          success = await widget.verifyResult();
+        } catch (_) {
+          success = false;
+        }
       }
+
       _setPaymentStatus(
           success == true ? PaymentStatus.success : PaymentStatus.fail);
     }
   }
 
-  Future<PaymentStatus> _launch() async {
-    String url;
-    try {
-      url = await widget.getPaymentUrl();
-    } catch (_) {}
-    if (url == null || url.isEmpty || !mounted) {
-      return PaymentStatus.fail;
-    }
-
+  Future<PaymentStatus> _launch(PaymentArguments args) async {
     final completer = Completer<PaymentStatus>();
     void completeOnce(PaymentStatus status) {
       if (!completer.isCompleted) {
@@ -155,34 +182,41 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
       }
     }
 
-    H5PayChannel.launchPaymentUrl(url, widget.paymentSchemes).then((code) {
-      PaymentStatus failStatus;
-      switch (code) {
-        case H5PayChannel.codeFailCantJump:
-          failStatus = PaymentStatus.cantJump;
-          break;
-        case H5PayChannel.codeFail:
-          failStatus = PaymentStatus.fail;
-          break;
-      }
-      completeOnce(failStatus);
+    if (args.redirectSchemes != null) {
+      H5PayChannel.launchRedirectUrl(args.url, args.redirectSchemes)
+          .then((success) {
+        if (success == true) {
+          completeOnce(null);
+        } else {
+          completeOnce(PaymentStatus.cantLaunchUrl);
+        }
+      }).catchError((e) {
+        debugPrint(e.toString());
+        completeOnce(PaymentStatus.fail);
+      });
+    } else {
+      H5PayChannel.launchUrl(args.url).then((success) {
+        if (success == true) {
+          completeOnce(null);
+        } else {
+          completeOnce(PaymentStatus.cantLaunchUrl);
+        }
+      }).catchError((e) {
+        debugPrint(e.toString());
+        completeOnce(PaymentStatus.fail);
+      });
+    }
 
-      //
-    }).catchError((e) {
-      debugPrint(e.toString());
-      completeOnce(PaymentStatus.fail);
-    });
-
-    Future.delayed(widget.getPaymentUrlTimeout, () {
-      completeOnce(PaymentStatus.getPaymentUrlTimeout);
+    Future.delayed(args.launchUrlTimeout, () {
+      completeOnce(PaymentStatus.launchUrlTimeout);
     });
 
     return completer.future;
   }
 
-  Future<PaymentStatus> _checkJump() async {
+  Future<PaymentStatus> _checkJump(PaymentArguments args) async {
     final count =
-        (widget.jumpTimeout.inMilliseconds / _checkJumpPeriod.inMilliseconds)
+        (args.jumpTimeout.inMilliseconds / _checkJumpPeriod.inMilliseconds)
             .ceil();
 
     // Cycle check
