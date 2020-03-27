@@ -1,3 +1,7 @@
+## 0.5.0
+
+* Refactor: getPaymentUrl => getPaymentArguments
+
 ## 0.4.2
 
 * Just update the README

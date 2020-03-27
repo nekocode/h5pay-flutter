@@ -8,18 +8,19 @@ A H5 payment (such as Alipay, WeChat Pay) plugin for flutter.
 
 ## Usage
 
-You can use the `showH5PayDialog` method to show a loading dialog and jump to payment app. When user switches from payment app to your app, the dialog will auto check the payment result.
+Use the `showH5PayDialog` method to show a loading dialog and jump to payment app. When user switches from payment app back to your app, you can check payment result with your server in the `verifyResult` callback (Optional).
 
 ```dart
 import 'package:h5pay/h5pay.dart';
 
 final PaymentStatus status = await showH5PayDialog(
   context: context,
-  paymentSchemes: const ['alipay', 'alipays', 'weixin', 'wechat'], 
-  getPaymentUrlTimeout: const Duration(seconds: 5),
-  jumpTimeout: const Duration(seconds: 3),
-  getPaymentUrl: () async => 'xxx', // get the app scheme (or http) payment url from your server
-  verifyResult: () async => true, // check order result from your server
+  // You can get payment url (normally is http or payment app scheme) from server in the getPaymentArguments callback
+  getPaymentArguments: () async => PaymentArguments(
+    url: 'https://is.gd/4cLE6j',
+    redirectSchemes: ['alipay', 'alipays', 'weixin', 'wechat'],
+  ),
+  verifyResult: () async => true, // check order result with your server
 );
 if (status == PaymentStatus.success) {
   // Do something
@@ -31,10 +32,12 @@ Values of `PaymentStatus`:
 ```dart
 enum PaymentStatus {
   idle,
-  gettingPaymentUrl,
-  getPaymentUrlTimeout,
+  gettingArguments,
+  getArgumentsFail,
+  launchingUrl,
+  cantLaunchUrl, // Maybe target payment app is not installed
+  launchUrlTimeout, // Maybe redirecting url is fail
   jumping,
-  cantJump, // Maybe target payment app is not installed
   jumpTimeout,
   verifying,
   success,
@@ -44,7 +47,7 @@ enum PaymentStatus {
 
 ### Notes
 
-* In iOS, to jump to the payment app, you must add target schemes into the `Info.plist` file. Just like:
+* In iOS, for allowing to jump to the payment app from your app, you must add schemes of the payment apps into the `Info.plist` file. Just like:
 
 ```xml
 <key>LSApplicationQueriesSchemes</key>
