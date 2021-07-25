@@ -1,15 +1,20 @@
 name: h5pay
 description: An H5/HTML5 payment (such as Alipay, WeChat Pay) plugin for flutter.
-version: 0.5.0
+version: 1.0.0-nullsafety.0
 homepage: https://github.com/nekocode/h5pay-flutter
 
 flutter:
   plugin:
-    androidPackage: cn.nekocode.h5pay
-    pluginClass: H5payPlugin
+    platforms:
+      android:
+        package: cn.nekocode.h5pay
+        pluginClass: H5payPlugin
+      ios:
+        pluginClass: H5payPlugin
 
 environment:
   sdk: ">=2.12.0 <3.0.0"
+  flutter: ">=1.12.0"
 
 dependencies:
   flutter:
