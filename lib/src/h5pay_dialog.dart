@@ -4,11 +4,11 @@ import 'package:flutter/widgets.dart';
 
 import 'h5pay_widget.dart';
 
-Future<PaymentStatus> showH5PayDialog({
-  @required BuildContext context,
-  @required GetArgumentsCallback getPaymentArguments,
-  VerifyResultCallback verifyResult,
-  WidgetBuilder builder,
+Future<PaymentStatus?> showH5PayDialog({
+  required BuildContext context,
+  required GetArgumentsCallback getPaymentArguments,
+  VerifyResultCallback? verifyResult,
+  WidgetBuilder? builder,
 }) {
   return showGeneralDialog(
     context: context,
@@ -38,16 +38,15 @@ Future<PaymentStatus> showH5PayDialog({
 
 class _H5PayDialog extends StatelessWidget {
   _H5PayDialog({
-    Key key,
-    @required this.getPaymentArguments,
+    Key? key,
+    required this.getPaymentArguments,
     this.verifyResult,
-    WidgetBuilder builder,
+    WidgetBuilder? builder,
   })  : this.builder = builder ?? _buildSimpleDialog,
-        assert(getPaymentArguments != null),
         super(key: key);
 
   final GetArgumentsCallback getPaymentArguments;
-  final VerifyResultCallback verifyResult;
+  final VerifyResultCallback? verifyResult;
   final WidgetBuilder builder;
 
   @override

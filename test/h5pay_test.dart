@@ -36,7 +36,7 @@ void main() {
                 Future.delayed(Duration(milliseconds: 500), () => true),
             builder: (context, status, controller) {
               print('Current payment status: ' + status.toString());
-              return FlatButton(
+              return TextButton(
                 onPressed: controller.launch,
                 child: Text(status.toString()),
               );
@@ -52,7 +52,7 @@ void main() {
     }
 
     Future changeAppLifecycleState(AppLifecycleState state) async {
-      return ServicesBinding.instance.defaultBinaryMessenger
+      return ServicesBinding.instance?.defaultBinaryMessenger
           .handlePlatformMessage(
         'flutter/lifecycle',
         const StringCodec().encodeMessage(state.toString()),

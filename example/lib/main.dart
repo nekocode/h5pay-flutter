@@ -11,10 +11,8 @@ class IndexPage extends StatelessWidget {
         title: const Text('Example app'),
       ),
       body: Center(
-        child: FlatButton(
+        child: TextButton(
           child: Text('Plugin Test'),
-          textColor: Colors.white,
-          color: Colors.blue,
           onPressed: () {
             Navigator.push(
               context,
@@ -52,9 +50,7 @@ class MainBody extends StatelessWidget {
               redirectSchemes: ['sms'],
             ),
             verifyResult: () async => true,
-            builder: (context, status, controller) => FlatButton(
-              textColor: Colors.white,
-              color: Colors.blue,
+            builder: (context, status, controller) => TextButton(
               onPressed: status != PaymentStatus.gettingArguments &&
                       status != PaymentStatus.launchingUrl &&
                       status != PaymentStatus.jumping &&
@@ -67,9 +63,7 @@ class MainBody extends StatelessWidget {
             ),
           ),
           SizedBox(height: 10),
-          FlatButton(
-            textColor: Colors.white,
-            color: Colors.blue,
+          TextButton(
             onPressed: () async {
               final status = await showH5PayDialog(
                 context: context,
@@ -79,7 +73,7 @@ class MainBody extends StatelessWidget {
                 ),
                 verifyResult: () async => true,
               );
-              Scaffold.of(context).showSnackBar(SnackBar(
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(status.toString()),
               ));
             },

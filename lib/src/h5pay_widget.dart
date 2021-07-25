@@ -30,7 +30,7 @@ class PaymentArguments {
   //
   // You can leave this argument to null to launch the url by using
   // the system api directly.
-  final List<String> redirectSchemes;
+  final List<String>? redirectSchemes;
 
   // Timeout duration of jumping to payment app (or system browser)
   final Duration jumpTimeout;
@@ -39,11 +39,11 @@ class PaymentArguments {
   final Duration launchUrlTimeout;
 
   PaymentArguments({
-    @required this.url,
+    required this.url,
     this.redirectSchemes,
-    jumpTimeout,
-    launchUrlTimeout,
-  })  : assert(url != null && url.isNotEmpty),
+    Duration? jumpTimeout,
+    Duration? launchUrlTimeout,
+  })  : assert(url.isNotEmpty),
         assert(jumpTimeout == null || !jumpTimeout.isNegative),
         assert(launchUrlTimeout == null || !launchUrlTimeout.isNegative),
         this.jumpTimeout = jumpTimeout ?? const Duration(seconds: 3),
@@ -72,16 +72,14 @@ class H5PayController {
 
 class H5PayWidget extends StatefulWidget {
   const H5PayWidget({
-    Key key,
-    @required this.getPaymentArguments,
-    @required this.builder,
+    Key? key,
+    required this.getPaymentArguments,
+    required this.builder,
     this.verifyResult,
-  })  : assert(getPaymentArguments != null),
-        assert(builder != null),
-        super(key: key);
+  })  : super(key: key);
 
   final GetArgumentsCallback getPaymentArguments;
-  final VerifyResultCallback verifyResult;
+  final VerifyResultCallback? verifyResult;
   final H5PayWidgetBuilder builder;
 
   @override
@@ -99,7 +97,7 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance?.addObserver(this);
     _controller._launchNotifier.addListener(() async {
       // Start to get payment arguments
       _setPaymentStatus(PaymentStatus.gettingArguments);
@@ -116,8 +114,11 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
 
       // Start to launch url
       _setPaymentStatus(PaymentStatus.launchingUrl);
-      PaymentStatus failStatus = await _launch(args);
-      if (failStatus != null || !mounted) {
+      var failStatus = await _launch(args);
+      if (!mounted) {
+        return;
+      }
+      if (failStatus != null) {
         _setPaymentStatus(failStatus);
         return;
       }
@@ -129,7 +130,10 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
 
       // Check if jump is successful
       failStatus = await _checkJump(args);
-      if (failStatus != null || !mounted) {
+      if (!mounted) {
+        return;
+      }
+      if (failStatus != null) {
         // Jump failed
         _listenLifecycle = false;
         _setPaymentStatus(failStatus);
@@ -141,7 +145,7 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
   @override
   void dispose() {
     _controller._dispose();
-    WidgetsBinding.instance.removeObserver(this);
+    WidgetsBinding.instance?.removeObserver(this);
     super.dispose();
   }
 
@@ -160,10 +164,11 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
 
       bool success = true;
       // Try to verify the payment result
-      if (widget.verifyResult != null) {
+      final verifyResult = widget.verifyResult;
+      if (verifyResult != null) {
         _setPaymentStatus(PaymentStatus.verifying);
         try {
-          success = await widget.verifyResult();
+          success = await verifyResult();
         } catch (_) {
           success = false;
         }
@@ -174,16 +179,17 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
     }
   }
 
-  Future<PaymentStatus> _launch(PaymentArguments args) async {
-    final completer = Completer<PaymentStatus>();
-    void completeOnce(PaymentStatus status) {
+  Future<PaymentStatus?> _launch(PaymentArguments args) async {
+    final completer = Completer<PaymentStatus?>();
+    void completeOnce(PaymentStatus? status) {
       if (!completer.isCompleted) {
         completer.complete(status);
       }
     }
 
-    if (args.redirectSchemes != null) {
-      H5PayChannel.launchRedirectUrl(args.url, args.redirectSchemes)
+    final redirectSchemes = args.redirectSchemes;
+    if (redirectSchemes != null) {
+      H5PayChannel.launchRedirectUrl(args.url, redirectSchemes)
           .then((success) {
         if (success == true) {
           completeOnce(null);
@@ -214,7 +220,7 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
     return completer.future;
   }
 
-  Future<PaymentStatus> _checkJump(PaymentArguments args) async {
+  Future<PaymentStatus?> _checkJump(PaymentArguments args) async {
     final count =
         (args.jumpTimeout.inMilliseconds / _checkJumpPeriod.inMilliseconds)
             .ceil();
