@@ -1,3 +1,7 @@
+## 1.0.1
+
+* Just bump version
+
 ## 1.0.0-nullsafety.0
 
 * Migrate to null safety
