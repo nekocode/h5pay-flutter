@@ -4,6 +4,7 @@ import WebKit
 
 public class SwiftH5payPlugin: NSObject, FlutterPlugin {
     private var targetSchemes = [String]()
+    private var httpHeaders = [String:String]()
     private var webView: WKWebView? = nil
     private var result: FlutterResult? = nil
     
@@ -44,6 +45,11 @@ public class SwiftH5payPlugin: NSObject, FlutterPlugin {
         } else {
             self.targetSchemes = [String]()
         }
+        if let httpHeaders = arguments["httpHeaders"] as? [String:String] {
+            self.httpHeaders = httpHeaders
+        } else {
+            self.httpHeaders = [String:String]()
+        }
         
         // Try to launch url directly
         if (Utils.hasScheme(url, targetSchemes)) {
@@ -55,7 +61,11 @@ public class SwiftH5payPlugin: NSObject, FlutterPlugin {
         validateWebView()
         
         self.result = result
-        webView!.load(URLRequest.init(url: url))
+        var request = URLRequest.init(url: url)
+        for (key, value) in self.httpHeaders {
+            request.setValue(key, forHTTPHeaderField: value)
+        }
+        webView!.load(request)
     }
     
     private func launchUrl(_ call: FlutterMethodCall, result: @escaping FlutterResult) {

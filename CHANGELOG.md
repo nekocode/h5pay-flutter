@@ -1,3 +1,7 @@
+## 1.1.0
+
+* Add support for setting http headers
+
 ## 1.0.1
 
 * Just bump version

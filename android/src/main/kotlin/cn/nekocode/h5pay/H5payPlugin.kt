@@ -2,7 +2,6 @@ package cn.nekocode.h5pay
 
 import android.annotation.SuppressLint
 import android.annotation.TargetApi
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
@@ -12,24 +11,29 @@ import android.view.View
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
-import io.flutter.plugin.common.PluginRegistry.Registrar
 
-class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
-    companion object {
-        @JvmStatic
-        fun registerWith(registrar: Registrar) {
-            val channel = MethodChannel(registrar.messenger(), "h5pay")
-            channel.setMethodCallHandler(H5payPlugin(registrar))
-        }
-    }
-
+class H5payPlugin : FlutterPlugin, MethodCallHandler {
+    private lateinit var channel: MethodChannel
+    private lateinit var binding: FlutterPlugin.FlutterPluginBinding
     private var targetSchemes: Iterable<String> = emptyList()
+    private var httpHeaders: Map<String, String> = emptyMap()
     private var webView: WebView? = null
     private var result: Result? = null
+
+    override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        this.binding = binding
+        channel = MethodChannel(binding.binaryMessenger, "h5pay")
+        channel.setMethodCallHandler(this)
+    }
+
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+        channel.setMethodCallHandler(null)
+    }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
         when (call.method) {
@@ -53,11 +57,17 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
         targetSchemes = (arguments?.get("targetSchemes") as? Iterable<*>)
             ?.filterIsInstance<String>()
             ?: emptyList()
+        @Suppress("UNCHECKED_CAST")
+        httpHeaders = (arguments?.get("httpHeaders") as? Map<String, String>) ?: emptyMap()
 
         // Try to launch url directly
-        val url = arguments?.get("url") as? String
+        val url = (arguments?.get("url") as? String)
+        if (url == null) {
+            result.success(false)
+            return
+        }
         if (Utils.hasScheme(url, targetSchemes)) {
-            result.success(Utils.launchUrl(registrar.activity(), url))
+            result.success(Utils.launchUrl(binding.applicationContext, url))
             return
         }
 
@@ -66,14 +76,14 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
         this.result = result
         webView!!.run {
             stopLoading()
-            loadUrl(url)
+            loadUrl(url, httpHeaders)
         }
     }
 
     private fun launchUrl(call: MethodCall, result: Result) {
         val arguments = call.arguments as? HashMap<*, *>
         val url = arguments?.get("url") as? String
-        result.success(Utils.launchUrl(registrar.activity(), url))
+        result.success(Utils.launchUrl(binding.applicationContext, url))
     }
 
     private fun canLaunch(call: MethodCall, result: Result) {
@@ -83,7 +93,7 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
             result.success(false)
             return
         }
-        result.success(Utils.canLaunch(registrar.activity(), url))
+        result.success(Utils.canLaunch(binding.applicationContext, url))
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -92,14 +102,14 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
             return
         }
 
-        val activity = registrar.activity()
+        val context = binding.applicationContext
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            if (0 != (activity.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE)) {
+            if (0 != (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE)) {
                 WebView.setWebContentsDebuggingEnabled(true)
             }
         }
 
-        val webView = WebView(activity)
+        val webView = WebView(context)
         webView.visibility = View.GONE
         webView.settings.javaScriptEnabled = true
         webView.settings.domStorageEnabled = true
@@ -127,7 +137,7 @@ class H5payPlugin(private val registrar: Registrar) : MethodCallHandler {
 
         private fun shouldOverrideUrlLoading(url: String?): Boolean {
             if (Utils.hasScheme(url, targetSchemes)) {
-                result?.success(Utils.launchUrl(registrar.activity(), url))
+                result?.success(Utils.launchUrl(binding.applicationContext, url))
                 return true
             }
             return false
@@ -139,12 +149,12 @@ object Utils {
     private const val FALLBACK_COMPONENT_NAME =
         "{com.android.fallback/com.android.fallback.Fallback}"
 
-    fun launchUrl(activity: Activity, url: String?): Boolean {
-        return if (!canLaunch(activity, url)) {
+    fun launchUrl(context: Context, url: String?): Boolean {
+        return if (!canLaunch(context, url)) {
             false
         } else {
             try {
-                activity.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+                context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
                 true
             } catch (_: Exception) {
                 false

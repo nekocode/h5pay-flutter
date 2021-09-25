@@ -19,6 +19,9 @@ final PaymentStatus status = await showH5PayDialog(
   getPaymentArguments: () async => PaymentArguments(
     url: 'https://is.gd/4cLE6j',
     redirectSchemes: ['alipay', 'alipays', 'weixin', 'wechat'],
+    httpHeaders: {
+      'referer': 'https://xxx',
+    },
   ),
   verifyResult: () async => true, // check order result with your server
 );

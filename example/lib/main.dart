@@ -48,6 +48,9 @@ class MainBody extends StatelessWidget {
             getPaymentArguments: () async => PaymentArguments(
               url: 'https://is.gd/4cLE6j',
               redirectSchemes: ['sms'],
+              httpHeaders: {
+                'referer': 'https://is.gd',
+              },
             ),
             verifyResult: () async => true,
             builder: (context, status, controller) => TextButton(
@@ -70,6 +73,9 @@ class MainBody extends StatelessWidget {
                 getPaymentArguments: () async => PaymentArguments(
                   url: 'https://is.gd/4cLE6j',
                   redirectSchemes: ['sms'],
+                  httpHeaders: {
+                    'referer': 'https://is.gd',
+                  },
                 ),
                 verifyResult: () async => true,
               );

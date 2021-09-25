@@ -32,6 +32,9 @@ class PaymentArguments {
   // the system api directly.
   final List<String>? redirectSchemes;
 
+  // Additional http headers for webview
+  final Map<String, String>? httpHeaders;
+
   // Timeout duration of jumping to payment app (or system browser)
   final Duration jumpTimeout;
 
@@ -41,6 +44,7 @@ class PaymentArguments {
   PaymentArguments({
     required this.url,
     this.redirectSchemes,
+    this.httpHeaders,
     Duration? jumpTimeout,
     Duration? launchUrlTimeout,
   })  : assert(url.isNotEmpty),
@@ -76,7 +80,7 @@ class H5PayWidget extends StatefulWidget {
     required this.getPaymentArguments,
     required this.builder,
     this.verifyResult,
-  })  : super(key: key);
+  }) : super(key: key);
 
   final GetArgumentsCallback getPaymentArguments;
   final VerifyResultCallback? verifyResult;
@@ -189,8 +193,11 @@ class _H5PayWidgetState extends State<H5PayWidget> with WidgetsBindingObserver {
 
     final redirectSchemes = args.redirectSchemes;
     if (redirectSchemes != null) {
-      H5PayChannel.launchRedirectUrl(args.url, redirectSchemes)
-          .then((success) {
+      H5PayChannel.launchRedirectUrl(
+        args.url,
+        redirectSchemes,
+        httpHeaders: args.httpHeaders,
+      ).then((success) {
         if (success == true) {
           completeOnce(null);
         } else {
