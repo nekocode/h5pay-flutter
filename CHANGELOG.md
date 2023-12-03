@@ -1,3 +1,7 @@
+## 1.1.1
+
+* Fix the issue of unable to jump on Android
+
 ## 1.1.0
 
 * Add support for setting http headers
